@@ -1,37 +1,53 @@
+module Spin.Parsers
+
 type ParseError = {
     Message: string
     CharacterPosition: int
 }
 
-type ParseResult<'In, 'Out> = Result<struct('Out * seq<'In>), ParseError>
+type ParseSuccess = {
+    CharacterPosition: int
+}
+
+type ParseResult<'Out> = Result<struct('Out * seq<char>), ParseError>
 
 
-type Parser<'In, 'Out> = seq<'In> -> ParseResult<'In, 'Out>
+type Parser<'Out> = seq<char> -> ParseResult<'Out>
 
 
-let item : Parser<'A, 'A> = 
+let item : Parser<char> = 
     fun input ->
         if Seq.isEmpty input then 
-            Error { Message = "sequence is empty"; CharacterPosition }
+            Error { Message = "sequence is empty"; CharacterPosition = 0 }
         else 
             Ok (Seq.head input, Seq.tail input)
 
 
-let zero : Parser<'In, 'Out> = fun _ -> Error "Unable to Parse ... for now"
+let zero : Parser<'Out> = fun _ -> Error { Message = "Unable to Parse ... for now"; CharacterPosition = 0 }
 
 
-let succeed item : Parser<'In, 'Out> = 
+let succeed item : Parser<'Out> = 
     fun input -> Ok (item, input)
 
 
-let map (func: 'b -> 'c) (parser: Parser<'a, 'b>): Parser<'a, 'c> =
+let apply (fnParser: Parser<'A -> 'B>) (valParser: Parser<'A>) : Parser<'B> =
+    fun input ->
+        fnParser input
+        |> Result.bind (fun struct (fn, next) ->
+            valParser next
+            |> Result.map (fun struct (it, rest) ->
+                struct (fn it, rest)))
+
+
+
+let map (func: 'A -> 'B) (parser: Parser<'A>): Parser<'B> =
     fun input ->
         input
         |> parser
         |> Result.map (fun struct (value, stream) -> (func value, stream))
 
 
-let bind (func: 'b -> Parser<'a, 'c>) (parser: Parser<'a, 'b>): Parser<'a, 'c> =
+let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>): Parser<'B> =
     fun input ->
         input
         |> parser
@@ -47,7 +63,7 @@ type ParserBuilder() =
 let parse = ParserBuilder()
 
 
-let satisfy (predicate: 'a -> bool): Parser<'a, 'a> =
+let satisfy (predicate: 'A -> bool): Parser<'A> =
     bind 
         (fun data ->
             if predicate data then
@@ -57,18 +73,18 @@ let satisfy (predicate: 'a -> bool): Parser<'a, 'a> =
         item
 
 
-let parseOr (second: Parser<'a, 'b>) (first: Parser<'a, 'b>): Parser<'a, 'b> =
+let parseOr (second: Parser<'A>) (first: Parser<'A>): Parser<'A> =
     fun input ->
         match first input with
         | Error _ -> second input
         | ok -> ok
 
 
-let character (it: char) : Parser<char, char> =
+let character (it: char) : Parser<char> =
     satisfy (fun data -> it = data)
 
 
-let rec str (it: string) : Parser<char, string> =
+let rec str (it: string) : Parser<string> =
     match it with
     | "" -> succeed ""
     | _ -> parse {
@@ -78,27 +94,27 @@ let rec str (it: string) : Parser<char, string> =
     }
 
 
-let charDigit : Parser<char, char> =
+let charDigit : Parser<char> =
     satisfy (fun data -> data >= '0' && data <= '9')
 
 
-let upper : Parser<char, char> =
+let upper : Parser<char> =
     satisfy (fun data -> data >= 'A' && data <= 'Z')
 
 
-let lower : Parser<char, char> =
+let lower : Parser<char> =
     satisfy (fun data -> data >= 'a' && data <= 'z')
 
 
-let letter : Parser<char, char> =
+let letter : Parser<char> =
     upper |> parseOr lower
 
 
-let alphaNumeric : Parser<char, char> =
+let alphaNumeric : Parser<char> =
     charDigit |> parseOr letter
 
 
-let rec many (parser: Parser<'a, 'b>): Parser<'a, list<'b>> = 
+let rec many (parser: Parser<'A>): Parser<list<'A>> = 
     parse {
         let! x = parser
         let! xs = many parser
@@ -108,7 +124,7 @@ let rec many (parser: Parser<'a, 'b>): Parser<'a, list<'b>> =
 
 
 // Many1
-let rec manyAtLeast1 (parser : Parser<'a, 'b>): Parser<'a, list<'b>> =
+let rec manyAtLeast1 (parser : Parser<'A>): Parser<list<'A>> =
     parse {
         let! x = parser
         let! xs = many parser
