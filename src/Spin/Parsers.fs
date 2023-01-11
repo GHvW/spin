@@ -40,6 +40,13 @@ let apply (fnParser: Parser<'A -> 'B>) (valParser: Parser<'A>) : Parser<'B> =
             |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
 
 
+let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
+    fun input ->
+        first input
+        |> Result.bind (fun struct (item1, rest) ->
+            second rest
+            |> Result.map (fun struct (item2, rest2) -> struct ((item1, item2), rest2)))
+
 
 let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
     fun input ->
@@ -57,10 +64,11 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
 
 type ParserBuilder() =
     member this.Zero() = zero
-    member this.Bind(parser, func) = bind func parser
-    member this.Return(item) = succeed item
+    member this.Bind(parser: Parser<'A>, func: 'A -> Parser<'B>) : Parser<'B> = bind func parser
+    member this.MergeSources(parser1: Parser<'A>, parser2: Parser<'B>) : Parser<'A * 'B> = product parser2 parser1
+    member this.Return(item: 'A) : Parser<'A> = succeed item
 
-let parse = ParserBuilder()
+let parser = ParserBuilder()
 
 
 let satisfy (predicate: char -> bool) : Parser<char> =
@@ -81,9 +89,9 @@ let rec str (it: string) : Parser<string> =
     match it with
     | "" -> succeed ""
     | _ ->
-        parse {
+        parser {
             let! x = character (it.[0])
-            let! y = str (it.[1..])
+            and! y = str (it.[1..])
             return it
         }
 
@@ -106,10 +114,10 @@ let letter: Parser<char> = upper |> orElse lower
 let alphaNumeric: Parser<char> = charDigit |> orElse letter
 
 
-let rec many (parser: Parser<'A>) : Parser<list<'A>> =
-    parse {
-        let! x = parser
-        let! xs = many parser
+let rec many (parseA: Parser<'A>) : Parser<list<'A>> =
+    parser {
+        let! x = parseA
+        and! xs = many parseA
 
         return x :: xs
     }
@@ -117,10 +125,10 @@ let rec many (parser: Parser<'A>) : Parser<list<'A>> =
 
 
 // Many1
-let rec atLeast1 (parser: Parser<'A>) : Parser<list<'A>> =
-    parse {
-        let! x = parser
-        let! xs = many parser
+let rec atLeast1 (parseA: Parser<'A>) : Parser<list<'A>> =
+    parser {
+        let! x = parseA
+        and! xs = many parseA
 
         return x :: xs
     }
