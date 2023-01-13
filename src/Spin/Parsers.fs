@@ -32,12 +32,11 @@ let zero: Parser<'Out> =
 let succeed item : Parser<'Out> = fun input -> Ok(item, input)
 
 
-let apply (fnParser: Parser<'A -> 'B>) (valParser: Parser<'A>) : Parser<'B> =
+let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
     fun input ->
         fnParser input
         |> Result.bind (fun struct (fn, next) ->
-            valParser next
-            |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
+            valParser next |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
 
 
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
@@ -53,6 +52,14 @@ let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
         input
         |> parser
         |> Result.map (fun struct (value, stream) -> (func value, stream))
+
+
+let map2 (func: 'A -> 'B -> 'C) (other: Parser<'B>) (parser: Parser<'A>) : Parser<'C> =
+    succeed func |> apply parser |> apply other
+
+
+let map3 (func: 'A -> 'B -> 'C -> 'D) (mid: Parser<'B>) (last: Parser<'C>) (first: Parser<'A>) : Parser<'D> =
+    succeed func |> apply first |> apply mid |> apply last
 
 
 let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
@@ -96,16 +103,13 @@ let rec str (it: string) : Parser<string> =
         }
 
 
-let charDigit: Parser<char> =
-    satisfy (fun data -> data >= '0' && data <= '9')
+let charDigit: Parser<char> = satisfy (fun data -> data >= '0' && data <= '9')
 
 
-let upper: Parser<char> =
-    satisfy (fun data -> data >= 'A' && data <= 'Z')
+let upper: Parser<char> = satisfy (fun data -> data >= 'A' && data <= 'Z')
 
 
-let lower: Parser<char> =
-    satisfy (fun data -> data >= 'a' && data <= 'z')
+let lower: Parser<char> = satisfy (fun data -> data >= 'a' && data <= 'z')
 
 
 let letter: Parser<char> = upper |> orElse lower
@@ -114,10 +118,10 @@ let letter: Parser<char> = upper |> orElse lower
 let alphaNumeric: Parser<char> = charDigit |> orElse letter
 
 
-let rec many (parseA: Parser<'A>) : Parser<list<'A>> =
+let rec many (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
-        let! x = parseA
-        and! xs = many parseA
+        let! x = parse
+        and! xs = many parse
 
         return x :: xs
     }
@@ -125,10 +129,10 @@ let rec many (parseA: Parser<'A>) : Parser<list<'A>> =
 
 
 // Many1
-let rec atLeast1 (parseA: Parser<'A>) : Parser<list<'A>> =
+let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
-        let! x = parseA
-        and! xs = many parseA
+        let! x = parse
+        and! xs = many parse
 
         return x :: xs
     }
