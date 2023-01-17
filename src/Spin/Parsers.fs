@@ -1,4 +1,4 @@
-module Spin.Parsers
+module Spin.Parser
 
 type ParseError =
     { Message: string
