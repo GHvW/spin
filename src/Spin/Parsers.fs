@@ -103,7 +103,7 @@ let rec str (it: string) : Parser<string> =
         }
 
 
-let charDigit: Parser<char> = satisfy (fun data -> data >= '0' && data <= '9')
+let numeric: Parser<char> = satisfy (fun data -> data >= '0' && data <= '9')
 
 
 let upper: Parser<char> = satisfy (fun data -> data >= 'A' && data <= 'Z')
@@ -115,7 +115,7 @@ let lower: Parser<char> = satisfy (fun data -> data >= 'a' && data <= 'z')
 let letter: Parser<char> = upper |> orElse lower
 
 
-let alphaNumeric: Parser<char> = charDigit |> orElse letter
+let alphaNumeric: Parser<char> = numeric |> orElse letter
 
 
 let rec many (parse: Parser<'A>) : Parser<list<'A>> =
