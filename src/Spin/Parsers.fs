@@ -136,3 +136,7 @@ let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
 
         return x :: xs
     }
+
+let word : Parser<list<char>> = 
+    fun input -> 
+        input |> many letter 
