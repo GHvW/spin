@@ -36,7 +36,8 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
     fun input ->
         fnParser input
         |> Result.bind (fun struct (fn, next) ->
-            valParser next |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
+            valParser next
+            |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
 
 
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
@@ -59,7 +60,10 @@ let map2 (func: 'A -> 'B -> 'C) (other: Parser<'B>) (parser: Parser<'A>) : Parse
 
 
 let map3 (func: 'A -> 'B -> 'C -> 'D) (mid: Parser<'B>) (last: Parser<'C>) (first: Parser<'A>) : Parser<'D> =
-    succeed func |> apply first |> apply mid |> apply last
+    succeed func
+    |> apply first
+    |> apply mid
+    |> apply last
 
 
 let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
@@ -72,7 +76,6 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
 type ParserBuilder() =
     member this.Zero() = zero
     member this.Bind(parser: Parser<'A>, func: 'A -> Parser<'B>) : Parser<'B> = bind func parser
-    member this.MergeSources(parser1: Parser<'A>, parser2: Parser<'B>) : Parser<'A * 'B> = product parser2 parser1
     member this.Return(item: 'A) : Parser<'A> = succeed item
 
 let parser = ParserBuilder()
@@ -98,18 +101,21 @@ let rec str (it: string) : Parser<string> =
     | _ ->
         parser {
             let! x = character (it.[0])
-            and! y = str (it.[1..])
+            let! y = str (it.[1..])
             return it
         }
 
 
-let numeric: Parser<char> = satisfy (fun data -> data >= '0' && data <= '9')
+let numeric: Parser<char> =
+    satisfy (fun data -> data >= '0' && data <= '9')
 
 
-let upper: Parser<char> = satisfy (fun data -> data >= 'A' && data <= 'Z')
+let upper: Parser<char> =
+    satisfy (fun data -> data >= 'A' && data <= 'Z')
 
 
-let lower: Parser<char> = satisfy (fun data -> data >= 'a' && data <= 'z')
+let lower: Parser<char> =
+    satisfy (fun data -> data >= 'a' && data <= 'z')
 
 
 let letter: Parser<char> = upper |> orElse lower
@@ -121,7 +127,7 @@ let alphaNumeric: Parser<char> = numeric |> orElse letter
 let rec many (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
         let! x = parse
-        and! xs = many parse
+        let! xs = many parse
 
         return x :: xs
     }
@@ -132,11 +138,9 @@ let rec many (parse: Parser<'A>) : Parser<list<'A>> =
 let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
         let! x = parse
-        and! xs = many parse
+        let! xs = many parse
 
         return x :: xs
     }
 
-let word : Parser<list<char>> = 
-    fun input -> 
-        input |> many letter 
+let word: Parser<list<char>> = fun input -> input |> (many letter)

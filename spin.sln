@@ -7,6 +7,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{BE728D25-3DF
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Spin", "src\Spin\Spin.fsproj", "{0D13A2EE-C1E5-4984-9276-E733295A204F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{202926B2-D194-4C85-A67E-16DA2645C0AD}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Spin.Test", "test\Spin.Test\Spin.Test.fsproj", "{8CD90C3F-3A04-45FA-BFF7-18E5D98266C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,8 +24,13 @@ Global
 		{0D13A2EE-C1E5-4984-9276-E733295A204F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0D13A2EE-C1E5-4984-9276-E733295A204F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0D13A2EE-C1E5-4984-9276-E733295A204F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CD90C3F-3A04-45FA-BFF7-18E5D98266C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CD90C3F-3A04-45FA-BFF7-18E5D98266C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CD90C3F-3A04-45FA-BFF7-18E5D98266C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CD90C3F-3A04-45FA-BFF7-18E5D98266C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{0D13A2EE-C1E5-4984-9276-E733295A204F} = {BE728D25-3DF6-430B-8145-A9CE9ADE811D}
+		{8CD90C3F-3A04-45FA-BFF7-18E5D98266C4} = {202926B2-D194-4C85-A67E-16DA2645C0AD}
 	EndGlobalSection
 EndGlobal
