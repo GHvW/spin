@@ -1,5 +1,7 @@
 module Spin.Parser
 
+open System
+
 type ParseError =
     { Message: string
       CharacterPosition: int }
@@ -124,6 +126,9 @@ let letter: Parser<char> = upper |> orElse lower
 let alphaNumeric: Parser<char> = numeric |> orElse letter
 
 
+let whitespace: Parser<char> = satisfy Char.IsWhiteSpace
+
+
 let rec many (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
         let! x = parse
@@ -144,3 +149,12 @@ let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
     }
 
 let word: Parser<list<char>> = fun input -> input |> (many letter)
+
+
+let token (parse: Parser<'A>) : Parser<'A> =
+    parser {
+        let! it = parse
+        let! _ = many whitespace
+        return it
+    }
+    
