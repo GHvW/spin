@@ -108,22 +108,19 @@ let rec str (it: string) : Parser<string> =
         }
 
 
-let numeric: Parser<char> =
-    satisfy (fun data -> data >= '0' && data <= '9')
+let digit: Parser<char> = satisfy Char.IsDigit
 
 
-let upper: Parser<char> =
-    satisfy (fun data -> data >= 'A' && data <= 'Z')
+let upper: Parser<char> = satisfy Char.IsUpper
 
 
-let lower: Parser<char> =
-    satisfy (fun data -> data >= 'a' && data <= 'z')
+let lower: Parser<char> = satisfy Char.IsLower
 
 
 let letter: Parser<char> = upper |> orElse lower
 
 
-let alphaNumeric: Parser<char> = numeric |> orElse letter
+let alphaNumeric: Parser<char> = digit |> orElse letter
 
 
 let whitespace: Parser<char> = satisfy Char.IsWhiteSpace
@@ -157,4 +154,12 @@ let token (parse: Parser<'A>) : Parser<'A> =
         let! _ = many whitespace
         return it
     }
-    
+
+// next - '0' gets the number between 9 and 0 inclusive without needing to parse the int
+// 10 * current + next shifts the digit on each iteration so that 8 + 7 + 1 + 5 = 8715 instead of 21
+let private scale (current: int) (next: char) : int =
+    (10 * current) + ((int next) - (int '0'))
+
+
+let natural: Parser<int> =
+    atLeast1 digit |> map (List.fold scale 0)

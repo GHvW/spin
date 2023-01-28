@@ -83,9 +83,19 @@ module ``Given A String`` =
         [<Fact>]
         let ``When parsing a digit`` () =
             let struct (result, rest) =
-                Parser.numeric newIt
+                Parser.digit newIt
                 |> Result.toOption
                 |> Option.get
 
             result |> should equal '3'
-            (String.Concat(rest)) |> should equal "llo World"
+            (String.Concat(rest)) |> should equal "llo W0rld"
+
+
+        let ``When parsing a number in the 100s`` () =
+            let struct (result, rest) =
+                Parser.natural "150s"
+                |> Result.toOption
+                |> Option.get
+
+            result |> should equal 150
+            (String.Concat(rest)) |> should equal "s"
