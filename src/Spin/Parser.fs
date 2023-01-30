@@ -3,8 +3,7 @@ module Spin.Parser
 open System
 
 type ParseError =
-    { Message: string
-      CharacterPosition: int }
+    { Message: string }
 
 type ParseSuccess = { CharacterPosition: int }
 
@@ -14,12 +13,17 @@ type ParseResult<'Out> = Result<struct ('Out * seq<char>), ParseError>
 type Parser<'Out> = seq<char> -> ParseResult<'Out>
 
 
+let run (parser: Parser<'A>) (input: seq<char>) : 'A =
+    match parser input with
+    | Ok struct (it, _) -> it
+    | Error err -> raise (Exception $"Error parsing {input} - failed with {err}");
+
+
 let item: Parser<char> =
     fun input ->
         if Seq.isEmpty input then
             Error
-                { Message = "sequence is empty"
-                  CharacterPosition = 0 }
+                { Message = "sequence is empty" }
         else
             Ok(Seq.head input, Seq.tail input)
 
@@ -27,8 +31,7 @@ let item: Parser<char> =
 let zero: Parser<'Out> =
     fun _ ->
         Error
-            { Message = "Unable to Parse ... for now"
-              CharacterPosition = 0 }
+            { Message = "Unable to Parse ... for now" }
 
 
 let succeed item : Parser<'Out> = fun input -> Ok(item, input)
