@@ -2,8 +2,7 @@ module Spin.Parser
 
 open System
 
-type ParseError =
-    { Message: string }
+type ParseError = { Message: string }
 
 type ParseSuccess = { CharacterPosition: int }
 
@@ -16,22 +15,19 @@ type Parser<'Out> = seq<char> -> ParseResult<'Out>
 let run (parser: Parser<'A>) (input: seq<char>) : 'A =
     match parser input with
     | Ok struct (it, _) -> it
-    | Error err -> raise (Exception $"Error parsing {input} - failed with {err}");
+    | Error err -> raise (Exception $"Error parsing {input} - failed with {err}")
 
 
 let item: Parser<char> =
     fun input ->
         if Seq.isEmpty input then
-            Error
-                { Message = "sequence is empty" }
+            Error { Message = "sequence is empty" }
         else
             Ok(Seq.head input, Seq.tail input)
 
 
 let zero: Parser<'Out> =
-    fun _ ->
-        Error
-            { Message = "Unable to Parse ... for now" }
+    fun _ -> Error { Message = "Unable to Parse ... for now" }
 
 
 let succeed item : Parser<'Out> = fun input -> Ok(item, input)
@@ -61,14 +57,11 @@ let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
 
 
 let map2 (func: 'A -> 'B -> 'C) (other: Parser<'B>) (parser: Parser<'A>) : Parser<'C> =
-    succeed func |> apply parser |> apply other
+    parser |> map func |> apply other
 
 
 let map3 (func: 'A -> 'B -> 'C -> 'D) (mid: Parser<'B>) (last: Parser<'C>) (first: Parser<'A>) : Parser<'D> =
-    succeed func
-    |> apply first
-    |> apply mid
-    |> apply last
+    first |> map func |> apply mid |> apply last
 
 
 let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
@@ -148,6 +141,22 @@ let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
         return x :: xs
     }
 
+
+let rec atLeast1SeparatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser<list<'A>> =
+    parser {
+        let! x = parse
+
+        let! xs = many (separator |> map (fun _ it -> it) |> apply parse)
+
+        return x :: xs
+    }
+
+
+let rec separatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser<list<'A>> =
+    atLeast1SeparatedBy separator parse
+    |> orElse (succeed [])
+
+
 let word: Parser<list<char>> = fun input -> input |> (many letter)
 
 
@@ -166,3 +175,13 @@ let private scale (current: int) (next: char) : int =
 
 let natural: Parser<int> =
     atLeast1 digit |> map (List.fold scale 0)
+
+
+let between (brace: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
+    parser {
+        let! _ = brace
+        let! item = parse
+        let! _ = brace
+
+        return item
+    }
