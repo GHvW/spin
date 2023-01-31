@@ -68,6 +68,22 @@ module ``Given A String`` =
 
 
     [<Fact>]
+    let ``When skipping characters between other parsers`` () =
+        let newParser =
+            (Parser.succeed (fun x z -> $"{x} + {z}")
+             |> Parser.apply (Parser.character 'H')
+             |> Parser.skip (Parser.character 'e')
+             |> Parser.apply (Parser.character 'l'))
+
+        let struct (result, rest) =
+            newParser it |> Result.toOption |> Option.get
+
+        result |> should equal "H + l"
+
+        (String.Concat(rest)) |> should equal "lo World!"
+
+
+    [<Fact>]
     let ``When parsing a single word`` () =
         let struct (result, rest) =
             Parser.word it |> Result.toOption |> Option.get
