@@ -39,11 +39,6 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
             valParser next |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
 
 
-let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
-    fun input ->
-        parse input
-        |> Result.bind (fun struct (fn, next) ->
-            skipParse next |> Result.map (fun struct (it, rest) -> struct (fn, rest)))
 
 
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
@@ -61,12 +56,26 @@ let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
         |> Result.map (fun struct (value, stream) -> (func value, stream))
 
 
-let map2 (func: 'A -> 'B -> 'C) (other: Parser<'B>) (parser: Parser<'A>) : Parser<'C> =
-    parser |> map func |> apply other
+let map2 
+    (func: 'A -> 'B -> 'C) 
+    (other: Parser<'B>) 
+    (parser: Parser<'A>)
+ : Parser<'C> =
+    parser 
+    |> map func 
+    |> apply other
 
 
-let map3 (func: 'A -> 'B -> 'C -> 'D) (mid: Parser<'B>) (last: Parser<'C>) (first: Parser<'A>) : Parser<'D> =
-    first |> map func |> apply mid |> apply last
+let map3 
+    (func: 'A -> 'B -> 'C -> 'D) 
+    (mid: Parser<'B>) 
+    (last: Parser<'C>) 
+    (first: Parser<'A>) 
+ : Parser<'D> =
+    first 
+    |> map func 
+    |> apply mid 
+    |> apply last
 
 
 let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
@@ -74,6 +83,7 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
         input
         |> parser
         |> Result.bind (fun struct (value, stream) -> (func value) stream)
+
 
 
 type ParserBuilder() =
@@ -84,8 +94,15 @@ type ParserBuilder() =
 let parser = ParserBuilder()
 
 
+
 let satisfy (predicate: char -> bool) : Parser<char> =
-    bind (fun c -> if predicate c then succeed c else zero) item
+    bind 
+        (fun c -> 
+            if predicate c then 
+                succeed c 
+            else zero) 
+        item
+
 
 
 let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
@@ -94,6 +111,11 @@ let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
         | Error _ -> second input
         | ok -> ok
 
+
+let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
+    parse
+    |> map (fun it _ -> it)
+    |> apply skipParse
 
 let character (it: char) : Parser<char> = satisfy (fun data -> it = data)
 
@@ -150,18 +172,22 @@ let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
 let rec atLeast1SeparatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
         let! x = parse
-
-        let! xs = many (separator |> map (fun _ it -> it) |> apply parse)
+        let! xs = 
+            many 
+                (separator 
+                    |> map (fun _ it -> it) 
+                    |> apply parse)
 
         return x :: xs
     }
 
 
 let rec separatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser<list<'A>> =
-    atLeast1SeparatedBy separator parse |> orElse (succeed [])
+    atLeast1SeparatedBy separator parse 
+    |> orElse (succeed [])
 
 
-let word: Parser<list<char>> = fun input -> input |> (many letter)
+let word: Parser<list<char>> = many letter
 
 
 let token (parse: Parser<'A>) : Parser<'A> =
@@ -177,7 +203,9 @@ let private scale (current: int) (next: char) : int =
     (10 * current) + ((int next) - (int '0'))
 
 
-let natural: Parser<int> = atLeast1 digit |> map (List.fold scale 0)
+let natural : Parser<int> = 
+    atLeast1 digit 
+    |> map (List.fold scale 0)
 
 
 let between (brace: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
