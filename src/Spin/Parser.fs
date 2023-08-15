@@ -26,10 +26,12 @@ let item: Parser<char> =
             Ok(Seq.head input, Seq.tail input)
 
 
-let zero: Parser<'Out> = fun _ -> Error { Message = "Unable to Parse ... for now" }
+let zero: Parser<'Out> = 
+    fun _ -> Error { Message = "Unable to Parse ... for now" }
 
 
-let succeed item : Parser<'Out> = fun input -> Ok(item, input)
+let succeed item : Parser<'Out> = 
+    fun input -> Ok(item, input)
 
 
 let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
@@ -37,8 +39,6 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
         fnParser input
         |> Result.bind (fun struct (fn, next) ->
             valParser next |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
-
-
 
 
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
@@ -85,14 +85,12 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
         |> Result.bind (fun struct (value, stream) -> (func value) stream)
 
 
-
 type ParserBuilder() =
     member this.Zero() = zero
     member this.Bind(parser: Parser<'A>, func: 'A -> Parser<'B>) : Parser<'B> = bind func parser
     member this.Return(item: 'A) : Parser<'A> = succeed item
 
 let parser = ParserBuilder()
-
 
 
 let satisfy (predicate: char -> bool) : Parser<char> =
@@ -102,7 +100,6 @@ let satisfy (predicate: char -> bool) : Parser<char> =
                 succeed c 
             else zero) 
         item
-
 
 
 let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
@@ -117,7 +114,9 @@ let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
     |> map (fun it _ -> it)
     |> apply skipParse
 
-let character (it: char) : Parser<char> = satisfy (fun data -> it = data)
+
+let character (it: char) : Parser<char> = 
+    satisfy (fun data -> it = data)
 
 
 let rec str (it: string) : Parser<string> =
@@ -131,22 +130,28 @@ let rec str (it: string) : Parser<string> =
         }
 
 
-let digit: Parser<char> = satisfy Char.IsDigit
+let digit: Parser<char> = 
+    satisfy Char.IsDigit
 
 
-let upper: Parser<char> = satisfy Char.IsUpper
+let upper: Parser<char> = 
+    satisfy Char.IsUpper
 
 
-let lower: Parser<char> = satisfy Char.IsLower
+let lower: Parser<char> = 
+    satisfy Char.IsLower
 
 
-let letter: Parser<char> = upper |> orElse lower
+let letter: Parser<char> = 
+    upper |> orElse lower
 
 
-let alphaNumeric: Parser<char> = digit |> orElse letter
+let alphaNumeric: Parser<char> = 
+    digit |> orElse letter
 
 
-let whitespace: Parser<char> = satisfy Char.IsWhiteSpace
+let whitespace: Parser<char> = 
+    satisfy Char.IsWhiteSpace
 
 
 let rec many (parse: Parser<'A>) : Parser<list<'A>> =
@@ -159,7 +164,6 @@ let rec many (parse: Parser<'A>) : Parser<list<'A>> =
     |> orElse (succeed [])
 
 
-// Many1
 let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
         let! x = parse
@@ -175,8 +179,8 @@ let rec atLeast1SeparatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser
         let! xs = 
             many 
                 (separator 
-                    |> map (fun _ it -> it) 
-                    |> apply parse)
+                |> map (fun _ it -> it) 
+                |> apply parse)
 
         return x :: xs
     }
@@ -196,6 +200,7 @@ let token (parse: Parser<'A>) : Parser<'A> =
         let! _ = many whitespace
         return it
     }
+
 
 // next - '0' gets the number between 9 and 0 inclusive without needing to parse the int
 // 10 * current + next shifts the digit on each iteration so that 8 + 7 + 1 + 5 = 8715 instead of 21
