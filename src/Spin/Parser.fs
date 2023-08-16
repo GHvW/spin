@@ -29,7 +29,17 @@ let item: Parser<char> =
 let zero: Parser<'Out> = fun _ -> Error { Message = "Unable to Parse ... for now" }
 
 
-let succeed item : Parser<'Out> = fun input -> Ok(item, input)
+let succeed it : Parser<'Out> = fun input -> Ok(it, input)
+
+
+let satisfy (predicate: char -> bool) : Parser<char> =
+    fun input ->
+        if Seq.isEmpty input then
+            Error { Message = "sequence is empty" }
+        else if predicate (Seq.head input) then
+            Ok(Seq.head input, Seq.tail input)
+        else
+            Error { Message = $"{Seq.head input} did not satisfy condition" }
 
 
 let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
@@ -82,10 +92,6 @@ type ParserBuilder() =
     member this.Return(item: 'A) : Parser<'A> = succeed item
 
 let parser = ParserBuilder()
-
-
-let satisfy (predicate: char -> bool) : Parser<char> =
-    bind (fun c -> if predicate c then succeed c else zero) item
 
 
 let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
