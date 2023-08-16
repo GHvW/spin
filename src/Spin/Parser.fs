@@ -18,14 +18,6 @@ let run (parser: Parser<'A>) (input: seq<char>) : 'A =
     | Error err -> raise (Exception $"Error parsing {input} - failed with {err}")
 
 
-let item: Parser<char> =
-    fun input ->
-        if Seq.isEmpty input then
-            Error { Message = "sequence is empty" }
-        else
-            Ok(Seq.head input, Seq.tail input)
-
-
 let zero: Parser<'Out> = 
     fun _ -> Error { Message = "Unable to Parse ... for now" }
 
