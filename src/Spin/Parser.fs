@@ -2,7 +2,7 @@ module Spin.Parser
 
 open System
 
-type ParseError = { Message: string }
+type ParseError = { Message: string; IsCommitted: bool }
 
 type ParseSuccess = { CharacterPosition: int }
 
@@ -106,6 +106,12 @@ let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
     parse
     |> map (fun it _ -> it)
     |> apply skipParse
+
+
+let attempt (parser: Parser<'A>) : Parser<'A> =
+    fun input ->
+        match parser input with
+        
 
 
 let character (it: char) : Parser<char> = 
