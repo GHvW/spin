@@ -114,7 +114,7 @@ let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
 
 let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
     parse
-    |> map (fun it _ -> it)
+    |> map (fun it _skipedItem -> it)
     |> apply skipParse
 
 
