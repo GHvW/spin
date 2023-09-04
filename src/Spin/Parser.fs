@@ -2,31 +2,40 @@ module Spin.Parser
 
 open System
 
-type Location = { Input: string; offset: int }
-
-type ParseError = { Stack: list<Location * string>; IsCommitted: bool }
+type Location = { Input: Memory<char>; offset: int }
 
 [<Struct>]
-type ParseSuccess<'A> = { Item: 'A; CharsConsumed: int }
+type ParseError = { 
+    Stack: list<Location * string>; 
+    IsCommitted: bool 
+}
+
+[<Struct>]
+type ParseSuccess<'A> = { 
+    Item: 'A; 
+    CharsConsumed: int 
+}
 
 type ParseResult<'Out> = Result<ParseSuccess<'Out>, ParseError>
 
 
-type Parser<'Out> = Memory<char> -> ParseResult<'Out>
+type Parser<'Out> = Location -> ParseResult<'Out>
 
 
+// TODO - error reporting
 let run (parser: Parser<'A>) (input: Memory<char>) : 'A =
-    match parser input with
-    | Ok struct (it, _) -> it
-    | Error err -> raise (Exception $"Error parsing {input} - failed with {err}")
+    match parser { Input = input; offset = 0; } with
+    | Ok { Item = it; CharsConsumed = _ } -> it
+    | Error _ -> raise (Exception $"Error parsing {input}")
 
 
+// TODO - error reporting
 let zero: Parser<'Out> = 
-    fun _ -> Error { Message = "Unable to Parse ... for now" }
+    fun input -> Error { Stack = [(input, "zero error")] ; IsCommitted = true }
 
 
 let succeed it : Parser<'Out> = 
-    fun input -> Ok(it, input)
+    fun input -> Ok { Item = it; CharsConsumed = 0 }
 
 
 let satisfy (predicate: char -> bool) : Parser<char> =
