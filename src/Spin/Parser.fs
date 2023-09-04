@@ -2,17 +2,20 @@ module Spin.Parser
 
 open System
 
-type ParseError = { Message: string; IsCommitted: bool }
+type Location = { Input: string; offset: int }
 
-type ParseSuccess = { CharacterPosition: int }
+type ParseError = { Stack: list<Location * string>; IsCommitted: bool }
 
-type ParseResult<'Out> = Result<struct ('Out * seq<char>), ParseError>
+[<Struct>]
+type ParseSuccess<'A> = { Item: 'A; CharsConsumed: int }
+
+type ParseResult<'Out> = Result<ParseSuccess<'Out>, ParseError>
 
 
-type Parser<'Out> = seq<char> -> ParseResult<'Out>
+type Parser<'Out> = Memory<char> -> ParseResult<'Out>
 
 
-let run (parser: Parser<'A>) (input: seq<char>) : 'A =
+let run (parser: Parser<'A>) (input: Memory<char>) : 'A =
     match parser input with
     | Ok struct (it, _) -> it
     | Error err -> raise (Exception $"Error parsing {input} - failed with {err}")
@@ -95,23 +98,24 @@ type ParserBuilder() =
 let parser = ParserBuilder()
 
 
+let attempt (parser: Parser<'A>) : Parser<'A> =
+    fun input ->
+        match parser input with
+        | Error err -> Error { err with IsCommitted = false }
+        | success -> success
+
+
 let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
     fun input ->
         match first input with
-        | Error _ -> second input
-        | ok -> ok
+        | Error { Stack = _; IsCommitted = false } -> second input
+        | it -> it 
 
 
 let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
     parse
     |> map (fun it _ -> it)
     |> apply skipParse
-
-
-let attempt (parser: Parser<'A>) : Parser<'A> =
-    fun input ->
-        match parser input with
-        
 
 
 let character (it: char) : Parser<char> = 
