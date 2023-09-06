@@ -2,11 +2,15 @@ module Spin.Parser
 
 open System
 
-type Location = { Input: Memory<char>; offset: int }
+type Location = { Input: Memory<char>; Offset: int }
+
+let inline advanceBy n location =
+    { location with Offset = location.Offset + n }
 
 [<Struct>]
 type ParseError = { 
-    Stack: list<Location * string>; 
+    // Stack: list<Location * string>; 
+    Stack: list<int * string>; // (offset, error messag)
     IsCommitted: bool 
 }
 
@@ -24,14 +28,14 @@ type Parser<'Out> = Location -> ParseResult<'Out>
 
 // TODO - error reporting
 let run (parser: Parser<'A>) (input: Memory<char>) : 'A =
-    match parser { Input = input; offset = 0; } with
+    match parser { Input = input; Offset = 0; } with
     | Ok { Item = it; CharsConsumed = _ } -> it
     | Error _ -> raise (Exception $"Error parsing {input}")
 
 
 // TODO - error reporting
 let zero: Parser<'Out> = 
-    fun input -> Error { Stack = [(input, "zero error")] ; IsCommitted = true }
+    fun input -> Error { Stack = [(input.Offset, "zero error")] ; IsCommitted = true }
 
 
 let succeed it : Parser<'Out> = 
@@ -40,19 +44,24 @@ let succeed it : Parser<'Out> =
 
 let satisfy (predicate: char -> bool) : Parser<char> =
     fun input ->
-        if Seq.isEmpty input then
-            Error { Message = "sequence is empty" }
-        else if predicate (Seq.head input) then
-            Ok(Seq.head input, Seq.tail input)
+        if input.Input.IsEmpty then
+            Error { Stack = [(input.Offset, "sequence is empty")]; IsCommitted = true }
+        else if predicate (input.Input.Span[input.Offset]) then
+            Ok({ Item = input.Input.Span[0]; CharsConsumed = 1 })
         else
-            Error { Message = $"{Seq.head input} did not satisfy condition" }
+            Error { 
+                Stack = [(input.Offset, $"{input.Input.Span[input.Offset]} did not satisfy condition")]; 
+                IsCommitted = true 
+            }
 
 
 let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
     fun input ->
         fnParser input
-        |> Result.bind (fun struct (fn, next) ->
-            valParser next |> Result.map (fun struct (it, rest) -> struct (fn it, rest)))
+        |> Result.bind (fun { Item = fn; CharsConsumed = next } ->
+            valParser { Input = input.Input; Offset = input.Offset + next } 
+            |> Result.map (fun { Item = it; CharsConsumed = rest } -> 
+                { Item = fn it; CharsConsumed = input.Offset + next + rest }))
 
 
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
@@ -67,7 +76,8 @@ let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
     fun input ->
         input
         |> parser
-        |> Result.map (fun struct (value, stream) -> (func value, stream))
+        |> Result.map (fun { Item = value; CharsConsumed = rest } -> 
+            { Item = func value; CharsConsumed = input.Offset + rest })
 
 
 let map2 
@@ -96,7 +106,8 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
     fun input ->
         input
         |> parser
-        |> Result.bind (fun struct (value, stream) -> (func value) stream)
+        |> Result.bind (fun { Item = value; CharsConsumed = rest } -> 
+            (func value) (input |> advanceBy rest))
 
 
 type ParserBuilder() =
