@@ -5,7 +5,7 @@ open System
 open Xunit
 open FsUnit.Xunit
 
-open Spin
+open Spin.Parser
 
 module ``Given a string`` =
 
@@ -13,8 +13,8 @@ module ``Given a string`` =
 
     [<Fact>]
     let ``When trying to parse characters`` () =
-        let struct (result, rest) =
-            (Parser.many Parser.letter it)
+        let result  =
+            (many (letter it))
             |> Result.toOption
             |> Option.get
 
@@ -24,7 +24,7 @@ module ``Given a string`` =
     [<Fact>]
     let ``When trying to parse at least one character`` () =
         let result =
-            (Parser.atLeast1 Parser.letter it)
+            (atLeast1 letter it)
             |> Result.toOption
 
         result |> should equal None

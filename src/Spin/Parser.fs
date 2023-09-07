@@ -59,7 +59,7 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
     fun input ->
         fnParser input
         |> Result.bind (fun { Item = fn; CharsConsumed = next } ->
-            valParser { Input = input.Input; Offset = input.Offset + next } 
+            valParser (input |> advanceBy next) 
             |> Result.map (fun { Item = it; CharsConsumed = rest } -> 
                 { Item = fn it; CharsConsumed = input.Offset + next + rest }))
 
@@ -67,9 +67,10 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
     fun input ->
         first input
-        |> Result.bind (fun struct (item1, rest) ->
-            second rest
-            |> Result.map (fun struct (item2, rest2) -> struct ((item1, item2), rest2)))
+        |> Result.bind (fun { Item = item1; CharsConsumed = rest } ->
+            second (input |> advanceBy rest)
+            |> Result.map (fun { Item = item2; CharsConsumed = rest2 } -> 
+                { Item = (item1, item2); CharsConsumed = input.Offset + rest + rest2 }))
 
 
 let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
