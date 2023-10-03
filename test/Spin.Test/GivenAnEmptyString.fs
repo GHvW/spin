@@ -13,18 +13,13 @@ module ``Given a string`` =
 
     [<Fact>]
     let ``When trying to parse characters`` () =
-        let result  =
-            (many (letter it))
-            |> Result.toOption
-            |> Option.get
+        let result = run (many (letter)) (Memory(it.ToCharArray()))
 
         (List.length result) |> should equal 0
 
 
     [<Fact>]
     let ``When trying to parse at least one character`` () =
-        let result =
-            (atLeast1 letter it)
-            |> Result.toOption
+        let result = run (atLeast1 letter) (Memory(it.ToCharArray()))
 
         result |> should equal None
