@@ -7,19 +7,25 @@ open FsUnit.Xunit
 
 open Spin.Parser
 
-module ``Given a string`` =
+module ``Given an empty string`` =
 
     let it = ""
 
     [<Fact>]
     let ``When trying to parse characters`` () =
-        let result = run (many (letter)) (Memory(it.ToCharArray()))
+        let result = 
+            many letter { Input = "".AsMemory(); Offset = 0 } 
+            |> Result.toOption 
+            |> Option.get
 
-        (List.length result) |> should equal 0
+        result.Item |> should be Empty
+        result.CharsConsumed |> should equal 0
 
 
     [<Fact>]
     let ``When trying to parse at least one character`` () =
-        let result = run (atLeast1 letter) (Memory(it.ToCharArray()))
+        let result = 
+            atLeast1 letter { Input = it.AsMemory(); Offset = 0 }
+            |> Result.toOption
 
         result |> should equal None

@@ -2,7 +2,7 @@ module Spin.Parser
 
 open System
 
-type Location = { Input: Memory<char>; Offset: int }
+type Location = { Input: ReadOnlyMemory<char>; Offset: int }
 
 let inline advanceBy n location =
     { location with Offset = location.Offset + n }
@@ -39,7 +39,7 @@ type Parser<'Out> = Location -> ParseResult<'Out>
 
 
 // TODO - error reporting
-let run (parser: Parser<'A>) (input: Memory<char>) : 'A =
+let run (parser: Parser<'A>) (input: ReadOnlyMemory<char>) : 'A =
     match parser { Input = input; Offset = 0 } with
     | Ok { Item = it; CharsConsumed = _ } -> it
     | Error _ -> raise (Exception $"Error parsing {input}")
@@ -54,7 +54,8 @@ let zero: Parser<'Out> =
 
 
 let succeed it : Parser<'Out> =
-    fun input -> Ok { Item = it; CharsConsumed = 0 }
+    fun input -> 
+        Ok { Item = it; CharsConsumed = 0 }
 
 
 let satisfy (predicate: char -> bool) : Parser<char> =
@@ -63,15 +64,16 @@ let satisfy (predicate: char -> bool) : Parser<char> =
             Error
                 { Stack = [ (input.Offset, "sequence is empty") ]
                   IsCommitted = true }
-        else if predicate (input.Input.Span[input.Offset]) then
-            Ok(
-                { Item = input.Input.Span[0]
-                  CharsConsumed = 1 }
-            )
+        else if input.Input.Length <= input.Offset then
+            Error { Stack = [ (input.Offset, "Offset is our of range")]; IsCommitted = true }
         else
-            Error
-                { Stack = [ (input.Offset, $"{input.Input.Span[input.Offset]} did not satisfy condition") ]
-                  IsCommitted = true }
+            let charToCheck = input.Input.Span[input.Offset]
+            if predicate charToCheck then
+                Ok { Item = charToCheck; CharsConsumed = 1 }
+            else
+                Error
+                    { Stack = [ (input.Offset, $"{input.Input.Span[input.Offset]} did not satisfy condition") ];
+                    IsCommitted = true }
 
 
 let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
@@ -80,6 +82,7 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
         |> Result.bind (fun { Item = fn; CharsConsumed = next } ->
             valParser (input |> advanceBy next)
             |> Result.map (fun { Item = it; CharsConsumed = rest } ->
+                printfn "offset is %A, new offset is %A" input.Offset (input.Offset + next + rest)
                 { Item = fn it
                   CharsConsumed = input.Offset + next + rest }))
 
@@ -115,7 +118,10 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
     fun input ->
         input
         |> parser
-        |> Result.bind (fun { Item = value; CharsConsumed = rest } -> (func value) (input |> advanceBy rest))
+        |> Result.bind (fun { Item = value; CharsConsumed = rest } -> 
+             match (func value) (input |> advanceBy rest) with
+             | Ok it -> Ok { it with CharsConsumed = it.CharsConsumed + rest }
+             | Error err -> Error { err with IsCommitted = err.IsCommitted || (rest <> 0)})
 
 
 type ParserBuilder() =
@@ -167,22 +173,22 @@ let upper: Parser<char> = satisfy Char.IsUpper
 let lower: Parser<char> = satisfy Char.IsLower
 
 
-let letter: Parser<char> = upper |> orElse lower
+let letter: Parser<char> = satisfy Char.IsLetter 
 
 
-let alphaNumeric: Parser<char> = digit |> orElse letter
+let alphaNumeric: Parser<char> = satisfy Char.IsLetterOrDigit 
 
 
 let whitespace: Parser<char> = satisfy Char.IsWhiteSpace
 
 
 let rec many (parse: Parser<'A>) : Parser<list<'A>> =
-    parser {
+    attempt (parser {
         let! x = parse
         let! xs = many parse
 
         return x :: xs
-    }
+    })
     |> orElse (succeed [])
 
 
