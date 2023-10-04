@@ -147,8 +147,18 @@ let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
 
 
 let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
-    parse |> map (fun it _skipedItem -> it) |> apply skipParse
+    parse 
+    |> map (fun it _skipedItem -> it) 
+    |> apply skipParse
 
+let inline ( *> ) skipParser parser = skip skipParser parser
+
+let skipRight (parser: Parser<'A>) (skipParser: Parser<'B>) : Parser<'A> =
+    skipParser
+    |> map (fun _skippedItem it -> it)
+    |> apply parser
+
+let inline ( <* ) parser skipParser = skipRight parser skipParser
 
 let character (it: char) : Parser<char> = satisfy (fun data -> it = data)
 
