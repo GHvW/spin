@@ -6,6 +6,7 @@ open Xunit
 open FsUnit.Xunit
 
 open Spin.Parser
+open Spin
 
 module ``Given an empty string`` =
 
@@ -14,7 +15,7 @@ module ``Given an empty string`` =
     [<Fact>]
     let ``When trying to parse characters`` () =
         let result = 
-            many letter { Input = "".AsMemory(); Offset = 0 } 
+            many letter (Location.init "")
             |> Result.toOption 
             |> Option.get
 
@@ -25,7 +26,7 @@ module ``Given an empty string`` =
     [<Fact>]
     let ``When trying to parse at least one character`` () =
         let result = 
-            atLeast1 letter { Input = it.AsMemory(); Offset = 0 }
+            atLeast1 letter (Location.init it)
             |> Result.toOption
 
         result |> should equal None

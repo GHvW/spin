@@ -16,7 +16,7 @@ module ``Given A String`` =
         let result =
             Parser.succeed
                 "succeed"
-                { Input = it.AsMemory(); Offset = 0 }
+                (Location.init it)
             |> Result.toOption
             |> Option.get
 
@@ -27,7 +27,7 @@ module ``Given A String`` =
     let ``When running zero`` () =
         let result =
             (Parser.zero
-                { Input = it.AsMemory(); Offset = 0 })
+                ( Location.init it))
             |> Result.toOption
 
         result |> should equal None
@@ -35,9 +35,7 @@ module ``Given A String`` =
     [<Fact>]
     let ``When parsing a single letter`` () =
         let result =
-            Parser.letter
-                { Input = it.AsMemory();
-                  Offset = 0 }
+            Parser.letter (Location.init it)
             |> Result.toOption
             |> Option.get
 
@@ -52,8 +50,7 @@ module ``Given A String`` =
             Parser.product
                 (Parser.character 'e')
                 (Parser.character 'H')
-                { Input = it.AsMemory();
-                  Offset = 0 }
+                (Location.init it)
             |> Result.toOption
             |> Option.get
 
@@ -73,9 +70,7 @@ module ``Given A String`` =
              |> Parser.apply (Parser.character 'l'))
 
         let result =
-            newParser
-                { Input = it.AsMemory();
-                  Offset = 0 }
+            newParser (Location.init it)
             |> Result.toOption
             |> Option.get
 
@@ -107,7 +102,7 @@ module ``Given A String`` =
     [<Fact>]
     let ``When parsing a single word`` () =
         let result = 
-            Parser.word { Input = it.AsMemory(); Offset = 0 } 
+            Parser.word (Location.init it)
             |> Result.toOption 
             |> Option.get
 
@@ -122,7 +117,7 @@ module ``Given A String`` =
         [<Fact>]
         let ``When parsing a digit`` () =
             let result = 
-                Parser.digit { Input = newIt.AsMemory(); Offset = 0 } 
+                Parser.digit (Location.init newIt)
                 |> Result.toOption 
                 |> Option.get
 
@@ -130,11 +125,22 @@ module ``Given A String`` =
             result.CharsConsumed |> should equal 1
 
 
+        [<Fact>]
         let ``When parsing a number in the 100s`` () =
             let result = 
-                Parser.natural { Input = "150s".AsMemory(); Offset = 0 } 
+                Parser.natural (Location.init "150s")
                 |> Result.toOption 
                 |> Option.get
 
             result.Item |> should equal 150
             result.CharsConsumed |> should equal 3
+
+        [<Fact>]
+        let ``when parsing letters only`` () =
+            let result = 
+                Parser.many (Parser.letter) (Location.init newIt)
+                |> Result.toOption
+                |> Option.get
+
+            result.Item |> should be Empty
+            result.CharsConsumed |> should equal 0

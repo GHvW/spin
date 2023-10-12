@@ -76,7 +76,6 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
         |> Result.bind (fun { Item = fn; CharsConsumed = next } ->
             valParser (input |> Location.advanceBy next)
             |> Result.map (fun { Item = it; CharsConsumed = rest } ->
-                printfn "offset is %A, new offset is %A" input.Offset (input.Offset + next + rest)
                 { Item = fn it
                   CharsConsumed = input.Offset + next + rest }))
 
@@ -215,7 +214,7 @@ let rec atLeast1SeparatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser
 
 
 let rec separatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser<list<'A>> =
-    atLeast1SeparatedBy separator parse |> orElse (succeed [])
+    attempt (atLeast1SeparatedBy separator parse) |> orElse (succeed [])
 
 
 let word: Parser<list<char>> = many letter
