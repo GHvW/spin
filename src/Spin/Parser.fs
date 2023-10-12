@@ -2,12 +2,6 @@ module Spin.Parser
 
 open System
 
-type Location = { Input: ReadOnlyMemory<char>; Offset: int }
-
-let inline advanceBy n location =
-    { location with Offset = location.Offset + n }
-
-
 
 [<Struct>]
 type ParseError =
@@ -80,7 +74,7 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
     fun input ->
         fnParser input
         |> Result.bind (fun { Item = fn; CharsConsumed = next } ->
-            valParser (input |> advanceBy next)
+            valParser (input |> Location.advanceBy next)
             |> Result.map (fun { Item = it; CharsConsumed = rest } ->
                 printfn "offset is %A, new offset is %A" input.Offset (input.Offset + next + rest)
                 { Item = fn it
@@ -91,7 +85,7 @@ let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
     fun input ->
         first input
         |> Result.bind (fun { Item = item1; CharsConsumed = rest } ->
-            second (input |> advanceBy rest)
+            second (input |> Location.advanceBy rest)
             |> Result.map (fun { Item = item2; CharsConsumed = rest2 } ->
                 { Item = (item1, item2)
                   CharsConsumed = input.Offset + rest + rest2 }))
@@ -119,7 +113,7 @@ let bind (func: 'A -> Parser<'B>) (parser: Parser<'A>) : Parser<'B> =
         input
         |> parser
         |> Result.bind (fun { Item = value; CharsConsumed = rest } -> 
-             match (func value) (input |> advanceBy rest) with
+             match (func value) (input |> Location.advanceBy rest) with
              | Ok it -> Ok { it with CharsConsumed = it.CharsConsumed + rest }
              | Error err -> Error { err with IsCommitted = err.IsCommitted || (rest <> 0)})
 
