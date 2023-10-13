@@ -144,14 +144,15 @@ let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
     |> map (fun it _skipedItem -> it) 
     |> apply skipParse
 
-let inline ( *> ) skipParser parser = skip skipParser parser
 
 let skipRight (parser: Parser<'A>) (skipParser: Parser<'B>) : Parser<'A> =
     skipParser
     |> map (fun _skippedItem it -> it)
     |> apply parser
 
-let inline ( <* ) parser skipParser = skipRight parser skipParser
+
+let inline ( *> ) skipParser parser = skipRight parser skipParser
+let inline ( <* ) parser skipParser = skip skipParser parser
 
 let character (it: char) : Parser<char> = satisfy (fun data -> it = data)
 
@@ -186,13 +187,12 @@ let whitespace: Parser<char> = satisfy Char.IsWhiteSpace
 
 
 let rec many (parse: Parser<'A>) : Parser<list<'A>> =
-    attempt (parser {
+    attempt(parser {
         let! x = parse
         let! xs = many parse
 
         return x :: xs
-    })
-    |> orElse (succeed [])
+    }) |> orElse (succeed [])
 
 
 let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
@@ -207,7 +207,7 @@ let rec atLeast1 (parse: Parser<'A>) : Parser<list<'A>> =
 let rec atLeast1SeparatedBy (separator: Parser<'B>) (parse: Parser<'A>) : Parser<list<'A>> =
     parser {
         let! x = parse
-        let! xs = many (separator |> map (fun _ it -> it) |> apply parse)
+        let! xs = many (skipRight parse separator)
 
         return x :: xs
     }

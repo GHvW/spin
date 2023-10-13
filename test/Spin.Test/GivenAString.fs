@@ -45,6 +45,79 @@ module ``Given A String`` =
 
 
     [<Fact>]
+    let ``When parsing starting a's out of aaaabbbb`` () =
+        let result =
+            Parser.many (Parser.character 'a') (Location.init "aaaabbbb")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should equal ['a'; 'a'; 'a'; 'a']
+        result.CharsConsumed |> should equal 4
+
+    [<Fact>]
+    let ``When parsing starting c's out of aaaabbbb`` () =
+        let result =
+            Parser.many (Parser.character 'c') (Location.init "aaaabbbb")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should be Empty
+        result.CharsConsumed |> should equal 0
+
+
+    [<Fact>]
+    let ``When parsing items separated by commas`` () =
+        let result =
+            Parser.separatedBy (Parser.character ',') (Parser.character 'a') (Location.init "a,a,a,abb")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should equal ['a'; 'a'; 'a'; 'a']
+        result.CharsConsumed |> should equal 7
+
+
+    [<Fact>]
+    let ``When parsing items separated by commas but there are none`` () =
+        let result =
+            Parser.separatedBy (Parser.character ',') (Parser.character 'c') (Location.init "a,a,a,abb")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should be Empty
+        result.CharsConsumed |> should equal 0
+
+    [<Fact>]
+    let ``When parsing at least 1 item separated by commas`` () =
+        let result =
+            Parser.atLeast1SeparatedBy (Parser.character ',') (Parser.character 'a') (Location.init "abb")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should equal ['a']
+        result.CharsConsumed |> should equal 1
+
+
+    [<Fact>]
+    let ``When parsing at least 1 item separated by +'s and there are multiple`` () =
+        let result =
+            Parser.atLeast1SeparatedBy (Parser.character '+') (Parser.character 'a') (Location.init "a+a+abb")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should equal ['a'; 'a'; 'a']
+        result.CharsConsumed |> should equal 5
+
+
+    [<Fact>]
+    let ``When parsing at least 1 item separated by commas but the input is bad`` () =
+        let result =
+            Parser.atLeast1SeparatedBy (Parser.character ',') (Parser.character 'a') (Location.init "c,a,a,abb")
+            |> Result.toOption
+
+        result |> should equal None
+
+
+    [<Fact>]
     let ``When parsing a product`` () =
         let result =
             Parser.product
@@ -88,9 +161,7 @@ module ``Given A String`` =
              |> Parser.apply (Parser.character 'l'))
 
         let result =
-            newParser
-                { Input = it.AsMemory();
-                  Offset = 0 }
+            newParser (Location.init it)
             |> Result.toOption
             |> Option.get
 
