@@ -5,26 +5,28 @@ open System
 open Xunit
 open FsUnit.Xunit
 
+open Spin.Parser
 open Spin
 
-module ``Given a string`` =
+module ``Given an empty string`` =
 
     let it = ""
 
     [<Fact>]
     let ``When trying to parse characters`` () =
-        let struct (result, rest) =
-            (Parser.many Parser.letter it)
-            |> Result.toOption
+        let result = 
+            many letter (Location.init "")
+            |> Result.toOption 
             |> Option.get
 
-        (List.length result) |> should equal 0
+        result.Item |> should be Empty
+        result.CharsConsumed |> should equal 0
 
 
     [<Fact>]
     let ``When trying to parse at least one character`` () =
-        let result =
-            (Parser.atLeast1 Parser.letter it)
+        let result = 
+            atLeast1 letter (Location.init it)
             |> Result.toOption
 
         result |> should equal None
