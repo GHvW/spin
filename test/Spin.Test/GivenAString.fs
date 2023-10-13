@@ -213,6 +213,29 @@ module ``Given A String`` =
 
 
     [<Fact>]
+    let ``When parsing a char between |`` () =
+        let result =
+            Parser.between (Parser.character '|') (Parser.character 'a') (Location.init "|a|blah")
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should equal 'a'
+        result.CharsConsumed |> should equal 3
+
+
+    [<Fact>]
+    let ``When parsing a char between parens`` () =
+        let result =
+            (Location.init "(a)blah")
+            |> ((Parser.character 'a') |> Parser.bracketedBy (Parser.character '(') (Parser.character ')'))
+            |> Result.toOption
+            |> Option.get
+
+        result.Item |> should equal 'a'
+        result.CharsConsumed |> should equal 3
+
+
+    [<Fact>]
     let ``When applying multiple parsers`` () =
         let newParser =
             (Parser.succeed (fun x y z -> $"{x} + {y} + {z}")

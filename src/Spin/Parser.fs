@@ -253,3 +253,15 @@ let between (brace: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
 
         return item
     }
+
+let private ignoreBrackets _ item _ = item
+
+let bracketedBy 
+    (openBracket: Parser<'B>) 
+    (closeBracket: Parser<'C>) 
+    (parse: Parser<'A>) 
+ : Parser<'A> =
+    openBracket 
+    |> map ignoreBrackets 
+    |> apply parse 
+    |> apply closeBracket
