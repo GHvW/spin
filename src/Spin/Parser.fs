@@ -77,7 +77,7 @@ let apply (valParser: Parser<'A>) (fnParser: Parser<'A -> 'B>) : Parser<'B> =
             valParser (input |> Location.advanceBy next)
             |> Result.map (fun { Item = it; CharsConsumed = rest } ->
                 { Item = fn it
-                  CharsConsumed = input.Offset + next + rest }))
+                  CharsConsumed = next + rest }))
 
 
 let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
@@ -87,7 +87,7 @@ let product (second: Parser<'B>) (first: Parser<'A>) : Parser<'A * 'B> =
             second (input |> Location.advanceBy rest)
             |> Result.map (fun { Item = item2; CharsConsumed = rest2 } ->
                 { Item = (item1, item2)
-                  CharsConsumed = input.Offset + rest + rest2 }))
+                  CharsConsumed = rest + rest2 }))
 
 
 let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
@@ -96,7 +96,7 @@ let map (func: 'A -> 'B) (parser: Parser<'A>) : Parser<'B> =
         |> parser
         |> Result.map (fun { Item = value; CharsConsumed = rest } ->
             { Item = func value
-              CharsConsumed = input.Offset + rest })
+              CharsConsumed = rest })
 
 
 let map2 (func: 'A -> 'B -> 'C) (other: Parser<'B>) (parser: Parser<'A>) : Parser<'C> =
@@ -139,15 +139,23 @@ let orElse (second: Parser<'A>) (first: Parser<'A>) : Parser<'A> =
         | it -> it
 
 
+let private skipSecond first _ = 
+    first
+
+
+let private skipFirst _ second = 
+    second
+
+
 let skip (skipParse: Parser<'B>) (parse: Parser<'A>) : Parser<'A> =
     parse 
-    |> map (fun it _skipedItem -> it) 
+    |> map (skipSecond) 
     |> apply skipParse
 
 
 let skipRight (parser: Parser<'A>) (skipParser: Parser<'B>) : Parser<'A> =
     skipParser
-    |> map (fun _skippedItem it -> it)
+    |> map (skipFirst)
     |> apply parser
 
 
